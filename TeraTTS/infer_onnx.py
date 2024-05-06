@@ -7,6 +7,7 @@ from huggingface_hub import snapshot_download
 from num2words import num2words
 import re
 from transliterate import translit
+import torch
 from .tokenizer import TokenizerG2P
 
 class TTS:
@@ -22,8 +23,9 @@ class TTS:
                               local_dir=model_dir,
                               local_dir_use_symlinks=False
                             )
-        
-        self.model = onnxruntime.InferenceSession(os.path.join(model_dir, "exported/model.onnx"), providers=['CPUExecutionProvider'])
+        providers = [("CUDAExecutionProvider", {"device_id": torch.cuda.current_device(), "user_compute_stream": str(torch.cuda.current_stream().cuda_stream)})]
+        sess_options = onnxruntime.SessionOptions()
+        self.model = onnxruntime.InferenceSession(os.path.join(model_dir, "exported/model.onnx"), sess_options=sess_options, providers=providers)
         self.preprocess_nums = preprocess_nums
         self.preprocess_trans = preprocess_trans
         
